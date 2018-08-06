@@ -1,21 +1,14 @@
 ﻿using System;
 using Android.App;
-using Android.Widget;
 using Android.OS;
 using Android.Support.Design.Widget;
 using Android.Support.V7.App;
 using Android.Views;
-using System.Collections.Generic;
-using Android.Provider;
-using Android.Database;
 using Android;
-using Android.Support.V4.Content;
 using Android.Content.PM;
 using Android.Support.V4.App;
-using System.Globalization;
 using System.Linq;
 using System.Text;
-using Android.Content;
 
 namespace BirthdayReminder
 {
@@ -25,14 +18,17 @@ namespace BirthdayReminder
         private const int REQUEST_READ_CONTACTS = 42;
 
         private NotificationHelper notificationHelper;
+        private BirthdayService birthdayService;
         private View layout;
         private FloatingActionButton fab;
+        //TODO: Konfigurierbar machen
         private int daysInFuture = 30;
 
         protected override void OnCreate(Bundle savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
             notificationHelper = new NotificationHelper(this);
+            birthdayService = new BirthdayService(this);
 
             SetContentView(Resource.Layout.activity_main);
             layout = FindViewById(Resource.Id.main_layout);
@@ -98,22 +94,16 @@ namespace BirthdayReminder
             }
             else
             {
-                var birthdays = GetBirthdaysFromContacts();
-
-                var birthdaysToday = from b in birthdays.Distinct()
-                                     let bNow = new DateTime(DateTime.Today.Year, b.birthday.Month, b.birthday.Day)
-                                     where bNow >= DateTime.Today && bNow <= DateTime.Today.AddDays(daysInFuture)
-                                     orderby bNow
-                                     select b;
+                var nextBirthdays = birthdayService.GetNextBirthdays(30);
 
                 StringBuilder message = new StringBuilder();
 
-                foreach (var b in birthdaysToday)
+                foreach (var birthday in nextBirthdays)
                 {
-                    message.AppendLine($"{b.birthday.ToString("dd.MM.")} - {b.name}");
+                    message.AppendLine($"{birthday.birthday.ToString("dd.MM.")} - {birthday.name}");
                 }
 
-                var notification = notificationHelper.GetNotification($"Bald haben {birthdaysToday.Count()} Leute Geburtstag", message.ToString());
+                var notification = notificationHelper.GetNotification($"Bald haben {nextBirthdays.Count()} Leute Geburtstag", message.ToString());
                 notificationHelper.Notify(0, notification);
             }
         }
@@ -142,51 +132,6 @@ namespace BirthdayReminder
             {
                 ActivityCompat.RequestPermissions(this, new String[] { Manifest.Permission.ReadContacts }, REQUEST_READ_CONTACTS);
             }
-        }
-
-        private IList<(String name, DateTime birthday)> GetBirthdaysFromContacts()
-        {
-            var birthdays = new List<(String, DateTime)>();
-
-            var uri = ContactsContract.Data.ContentUri;
-            string[] projection = {
-               ContactsContract.Contacts.InterfaceConsts.Id,
-               ContactsContract.Contacts.InterfaceConsts.DisplayName,
-               ContactsContract.CommonDataKinds.Event.StartDate
-            };
-
-            string query = "data2=3"; // Type=Birthday
-
-            using (var phones = ApplicationContext.ContentResolver.Query(uri, projection, query, null, null))
-            {
-                if (phones != null)
-                {
-                    while (phones.MoveToNext())
-                    {
-                        try
-                        {
-                            string name = phones.GetString(phones.GetColumnIndex(ContactsContract.Contacts.InterfaceConsts.DisplayName));
-                            string birthdayValue = phones.GetString(phones.GetColumnIndex(ContactsContract.CommonDataKinds.Event.StartDate));
-
-                            if (DateTime.TryParseExact(birthdayValue, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out DateTime birthday))
-                            {
-                                birthdays.Add((name, birthday));
-                                //yield return (name, birthday);
-                            }
-
-                            //phoneContacts.Add(name);
-                        }
-                        catch (Exception ex)
-                        {
-                            //something wrong with one contact, may be display name is completely empty, decide what to do
-                        }
-                    }
-                    phones.Close(); //not really neccessary, we have "using" above
-                }
-                //else we cannot get to phones, decide what to do
-            }
-
-            return birthdays;
         }
     }
  }
