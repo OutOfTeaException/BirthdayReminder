@@ -12,6 +12,8 @@ using System.Text;
 using BirthdayReminder.Extensions;
 using Android.App.Job;
 using Android.Util;
+using Android.Widget;
+using System.IO;
 
 namespace BirthdayReminder
 {
@@ -25,8 +27,10 @@ namespace BirthdayReminder
         private BirthdayService birthdayService;
         private View layout;
         private FloatingActionButton fab;
+        
         //TODO: Konfigurierbar machen
         private int daysInFuture = 30;
+        private (int hour, int minute) checkTime = (13, 30);
 
         JobScheduler jobScheduler;
         JobScheduler JobScheduler
@@ -56,7 +60,11 @@ namespace BirthdayReminder
             fab = FindViewById<FloatingActionButton>(Resource.Id.fab);
             fab.Click += FabOnClick;
 
-            Log.Info(TAG, "Anwendung gestartet.");
+            Log.Info("Anwendung gestartet.");
+
+            TextView textView = FindViewById<TextView>(Resource.Id.textbox);
+            textView.Text = File.ReadAllText(Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal), "log.txt"));
+
         }
 
         public override void OnRequestPermissionsResult(int requestCode, string[] permissions, Permission[] grantResults)
@@ -96,6 +104,8 @@ namespace BirthdayReminder
             int id = item.ItemId;
             if (id == Resource.Id.action_settings)
             {
+                TextView textView = FindViewById<TextView>(Resource.Id.textbox);
+                textView.Text = File.ReadAllText(Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal), "log.txt"));
                 return true;
             }
 
@@ -113,28 +123,43 @@ namespace BirthdayReminder
             }
             else
             {
-
                 //CheckForNextBirthdays();
-                var jobParameters = new PersistableBundle();
-                jobParameters.PutInt("daysInFuture", 30);
-
-                var jobInfo = this.CreateJobBuilderUsingJobId<BirthdayCheckJob>(1)
-                                     .SetExtras(jobParameters)
-                                     .SetPeriodic(15 * 60 * 1000, 5 * 60 * 1000) // alle 15 min
-                                     .Build();
-
-                var scheduleResult = JobScheduler.Schedule(jobInfo);
+                //int pendingJobCount = JobScheduler.AllPendingJobs.Count;
+                //if (pendingJobCount > 0)
+                //{
+                //    Snackbar.Make(view, "Job läuft bereits!", Snackbar.LengthShort).Show();
+                //    return;
+                //}
+                
+                int scheduleResult = ScheduleJob();
                 if (JobScheduler.ResultSuccess == scheduleResult)
                 {
-                    Log.Info(TAG, "Job gestartet!");
-                    Snackbar.Make(view, "Job gestartet!", Snackbar.LengthShort).Show();
+                    Log.Info("Job aktiviert.");
+                    Snackbar.Make(view, "Job aktiviert!", Snackbar.LengthShort).Show();
                 }
                 else
                 {
-                    Log.Error(TAG, "Job konnte nicht gestartet werden...");
-                    Snackbar.Make(view, "Job konnte nicht gestartet werden... :(", Snackbar.LengthShort).Show();
+                    Log.Error("Job konnte nicht aktiviert werden...");
+                    Snackbar.Make(view, "Job konnte nicht aktiviert werden... :(", Snackbar.LengthShort).Show();
                 }
             }
+        }
+
+        private int ScheduleJob()
+        {
+            JobScheduler.CancelAll();
+            var jobParameters = new PersistableBundle();
+            jobParameters.PutInt(BirthdayCheckJob.JOBPARAM_DAYS_IN_FUTURE, daysInFuture);
+            jobParameters.PutIntArray(BirthdayCheckJob.JOBPARAM_CHECKTIME, new[] { checkTime.hour, checkTime.minute });
+
+            var jobInfo = this.CreateJobBuilderUsingJobId<BirthdayCheckJob>(1)
+                                 .SetExtras(jobParameters)
+                                 .SetPeriodic(15 * 60 * 1000, 5 * 60 * 1000) // alle 15 min
+                                 .SetPersisted(true)
+                                 .Build();
+
+            var scheduleResult = JobScheduler.Schedule(jobInfo);
+            return scheduleResult;
         }
 
         private void CheckForNextBirthdays()

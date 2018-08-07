@@ -12,15 +12,17 @@ namespace BirthdayReminder
     [Service(Name = "BirthdayReminder.BirthdayCheckJob", Permission = "android.permission.BIND_JOB_SERVICE")]
     public class BirthdayCheckJob : JobService
     {
+        public const string JOBPARAM_DAYS_IN_FUTURE = "daysInFuture";
+        public const string JOBPARAM_CHECKTIME = "checkTime";
+
         private const string TAG = "BirthdayCheckJob";
         private NotificationHelper notificationHelper;
         private BirthdayService birthdayService;
-        //TODO: Konfigurabel machen
-        private (int hour, int minute) checkTime = (23, 5);
+        private DateTime? lastCheckTime;
 
         public override bool OnStartJob(JobParameters jobParams)
         {
-            Log.Info(TAG, "Starte BirthdayCheck Job...");
+            Log.Info("Starte BirthdayCheck Job...");
 
             if (notificationHelper == null)
             {
@@ -28,26 +30,34 @@ namespace BirthdayReminder
                 birthdayService = new BirthdayService(this);
             }
 
-            if (ShouldCheck(DateTime.Now))
-            {
+            int checkDaysInFuture = jobParams.Extras.GetInt(JOBPARAM_DAYS_IN_FUTURE, 30);
+            int[] checkTimeArray = jobParams.Extras.GetIntArray(JOBPARAM_CHECKTIME);
+            (int hour, int minute) checkTime = (checkTimeArray[0], checkTimeArray[1]);
 
+            if (ShouldCheck(DateTime.Now, checkTime))
+            {
                 Task.Run(() =>
                 {
-                    int checkDaysInFuture = jobParams.Extras.GetInt("daysInFuture", 30);
-                    Log.Debug(TAG, "Job wird ausgeführt...");
+                    Log.Debug($"Job wird ausgeführt (CheckTime: {checkTime.hour:00}:{checkTime.minute:00})...");
                     CheckForNextBirthdays(checkDaysInFuture);
+                    lastCheckTime = DateTime.Now;
 
-                    Log.Debug(TAG, "Job erfolgreich ausgeführt.");
+                    Log.Debug("Job erfolgreich ausgeführt.");
                     JobFinished(jobParams, false);
                 });
 
-                Log.Debug(TAG, "Job gestartet.");
+                Log.Debug("Job gestartet.");
             }
             return true;
         }
 
-        private bool ShouldCheck(DateTime now)
+        private bool ShouldCheck(DateTime now, (int hour, int minute) checkTime)
         {
+            // Wenn seit einer Stunde nicht mehr geprüft wurde, auf jeden Fall prüfen
+            if (lastCheckTime.HasValue && now < lastCheckTime.Value.AddHours(1))
+                return true;
+            
+            // Prüfen, on die Prüfzeit erreicht ist
             var checkDateTime = new DateTime(now.Year, now.Month, now.Day, checkTime.hour, checkTime.minute, 0);
 
             return checkDateTime <= now && checkDateTime >= now.AddMinutes(-10);
@@ -55,7 +65,6 @@ namespace BirthdayReminder
 
         private void CheckForNextBirthdays(int daysInFuture)
         {
-           
             var nextBirthdays = birthdayService.GetNextBirthdays(daysInFuture);
 
             StringBuilder message = new StringBuilder();
@@ -71,8 +80,8 @@ namespace BirthdayReminder
 
         public override bool OnStopJob(JobParameters jobParams)
         {
-            Log.Debug(TAG, "Job wurde gestoppt.");
-            return false; // Don't Reschedule
+            Log.Debug("Job wurde gestoppt.");
+            return true; // Reschedule
         }
     }
 }

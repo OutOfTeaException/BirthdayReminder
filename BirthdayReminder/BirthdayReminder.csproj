@@ -59,8 +59,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="BirthdayCheckJob.cs" />
+    <Compile Include="BirthdayInfo.cs" />
+    <Compile Include="BirthdayList.cs" />
     <Compile Include="BirthdayService.cs" />
     <Compile Include="Extensions\JobSchulderExtensions.cs" />
+    <Compile Include="Log.cs" />
     <Compile Include="MainActivity.cs" />
     <Compile Include="NotificationHelper.cs" />
     <Compile Include="Resources\Resource.Designer.cs" />
