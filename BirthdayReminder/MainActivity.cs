@@ -9,6 +9,9 @@ using Android.Content.PM;
 using Android.Support.V4.App;
 using System.Linq;
 using System.Text;
+using BirthdayReminder.Extensions;
+using Android.App.Job;
+using Android.Util;
 
 namespace BirthdayReminder
 {
@@ -16,6 +19,7 @@ namespace BirthdayReminder
     public class MainActivity : AppCompatActivity, ActivityCompat.IOnRequestPermissionsResultCallback
     {
         private const int REQUEST_READ_CONTACTS = 42;
+        public const string TAG = "BirthdayReminder";
 
         private NotificationHelper notificationHelper;
         private BirthdayService birthdayService;
@@ -23,6 +27,19 @@ namespace BirthdayReminder
         private FloatingActionButton fab;
         //TODO: Konfigurierbar machen
         private int daysInFuture = 30;
+
+        JobScheduler jobScheduler;
+        JobScheduler JobScheduler
+        {
+            get
+            {
+                if (jobScheduler == null)
+                {
+                    jobScheduler = (JobScheduler)GetSystemService(JobSchedulerService);
+                }
+                return jobScheduler;
+            }
+        }
 
         protected override void OnCreate(Bundle savedInstanceState)
         {
@@ -38,6 +55,8 @@ namespace BirthdayReminder
 
             fab = FindViewById<FloatingActionButton>(Resource.Id.fab);
             fab.Click += FabOnClick;
+
+            Log.Info(TAG, "Anwendung gestartet.");
         }
 
         public override void OnRequestPermissionsResult(int requestCode, string[] permissions, Permission[] grantResults)
@@ -94,18 +113,43 @@ namespace BirthdayReminder
             }
             else
             {
-                var nextBirthdays = birthdayService.GetNextBirthdays(30);
 
-                StringBuilder message = new StringBuilder();
+                //CheckForNextBirthdays();
+                var jobParameters = new PersistableBundle();
+                jobParameters.PutInt("daysInFuture", 30);
 
-                foreach (var birthday in nextBirthdays)
+                var jobInfo = this.CreateJobBuilderUsingJobId<BirthdayCheckJob>(1)
+                                     .SetExtras(jobParameters)
+                                     .SetPeriodic(15 * 60 * 1000, 5 * 60 * 1000) // alle 15 min
+                                     .Build();
+
+                var scheduleResult = JobScheduler.Schedule(jobInfo);
+                if (JobScheduler.ResultSuccess == scheduleResult)
                 {
-                    message.AppendLine($"{birthday.birthday.ToString("dd.MM.")} - {birthday.name}");
+                    Log.Info(TAG, "Job gestartet!");
+                    Snackbar.Make(view, "Job gestartet!", Snackbar.LengthShort).Show();
                 }
-
-                var notification = notificationHelper.GetNotification($"Bald haben {nextBirthdays.Count()} Leute Geburtstag", message.ToString());
-                notificationHelper.Notify(0, notification);
+                else
+                {
+                    Log.Error(TAG, "Job konnte nicht gestartet werden...");
+                    Snackbar.Make(view, "Job konnte nicht gestartet werden... :(", Snackbar.LengthShort).Show();
+                }
             }
+        }
+
+        private void CheckForNextBirthdays()
+        {
+            var nextBirthdays = birthdayService.GetNextBirthdays(30);
+
+            StringBuilder message = new StringBuilder();
+
+            foreach (var birthday in nextBirthdays)
+            {
+                message.AppendLine($"{birthday.birthday.ToString("dd.MM.")} - {birthday.name}");
+            }
+
+            var notification = notificationHelper.GetNotification($"Bald haben {nextBirthdays.Count()} Leute Geburtstag", message.ToString());
+            notificationHelper.Notify(0, notification);
         }
 
         private void RequestPermissions()
@@ -118,15 +162,12 @@ namespace BirthdayReminder
                 //Log.Info(TAG, "Displaying camera permission rationale to provide additional context.");
 
                 var requiredPermissions = new String[] { Manifest.Permission.ReadContacts };
-                Snackbar.Make(layout,
-                               "BLABLABLA",
-                               Snackbar.LengthIndefinite)
-                        .SetAction("OK",
-                                   new Action<View>(delegate (View obj) {
-                                       ActivityCompat.RequestPermissions(this, requiredPermissions, REQUEST_READ_CONTACTS);
-                                   }
-                        )
-                ).Show();
+                Snackbar.Make(layout, "BLABLABLA", Snackbar.LengthIndefinite)
+                        .SetAction("OK", new Action<View>(delegate (View obj)
+                        {
+                            ActivityCompat.RequestPermissions(this, requiredPermissions, REQUEST_READ_CONTACTS);
+                        }))
+                        .Show();
             }
             else
             {
