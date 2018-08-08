@@ -58,16 +58,16 @@
     <Reference Include="Mono.Android" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="BirthdayCheckJob.cs" />
-    <Compile Include="BirthdayInfo.cs" />
-    <Compile Include="BirthdayList.cs" />
-    <Compile Include="BirthdayListAdapter.cs" />
-    <Compile Include="BirthdayService.cs" />
-    <Compile Include="BirthdayViewHolder.cs" />
+    <Compile Include="Jobs\BirthdayCheckJob.cs" />
+    <Compile Include="Model\BirthdayInfo.cs" />
+    <Compile Include="Views\Main\BirthdayList.cs" />
+    <Compile Include="Views\Main\BirthdayListAdapter.cs" />
+    <Compile Include="Services\BirthdayService.cs" />
+    <Compile Include="Views\Main\BirthdayViewHolder.cs" />
     <Compile Include="Extensions\JobSchulderExtensions.cs" />
-    <Compile Include="Log.cs" />
-    <Compile Include="MainActivity.cs" />
-    <Compile Include="NotificationHelper.cs" />
+    <Compile Include="Util\Log.cs" />
+    <Compile Include="Views\Main\MainActivity.cs" />
+    <Compile Include="Util\NotificationHelper.cs" />
     <Compile Include="Resources\Resource.Designer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

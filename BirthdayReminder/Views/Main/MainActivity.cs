@@ -7,16 +7,14 @@ using Android.Views;
 using Android;
 using Android.Content.PM;
 using Android.Support.V4.App;
-using System.Linq;
-using System.Text;
 using BirthdayReminder.Extensions;
 using Android.App.Job;
-using Android.Util;
-using Android.Widget;
-using System.IO;
 using Android.Support.V7.Widget;
+using BirthdayReminder.Services;
+using BirthdayReminder.Jobs;
+using BirthdayReminder.Util;
 
-namespace BirthdayReminder
+namespace BirthdayReminder.Views.Main
 {
     [Activity(Label = "@string/app_name", Theme = "@style/AppTheme", MainLauncher = true)]
     public class MainActivity : AppCompatActivity, ActivityCompat.IOnRequestPermissionsResultCallback

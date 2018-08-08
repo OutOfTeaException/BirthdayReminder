@@ -3,7 +3,7 @@ using Android.App;
 using Android.Content;
 using Android.Graphics;
 
-namespace BirthdayReminder
+namespace BirthdayReminder.Util
 {
     public class NotificationHelper : ContextWrapper
     {

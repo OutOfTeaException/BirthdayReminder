@@ -4,8 +4,10 @@ using System.Globalization;
 using System.Linq;
 using Android.Content;
 using Android.Provider;
+using BirthdayReminder.Model;
+using BirthdayReminder.Util;
 
-namespace BirthdayReminder
+namespace BirthdayReminder.Services
 {
     public class BirthdayService : ContextWrapper
     {
@@ -29,9 +31,9 @@ namespace BirthdayReminder
         private IList<(String name, DateTime birthday)> GetBirthdaysFromContacts()
         {
             var birthdays = new List<(String, DateTime)>();
-
             var uri = ContactsContract.Data.ContentUri;
-            string[] projection = {
+            string[] projection =
+            {
                ContactsContract.Contacts.InterfaceConsts.Id,
                ContactsContract.Contacts.InterfaceConsts.DisplayName,
                ContactsContract.CommonDataKinds.Event.StartDate
@@ -53,16 +55,14 @@ namespace BirthdayReminder
                             if (DateTime.TryParseExact(birthdayValue, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.AssumeLocal, out DateTime birthday))
                             {
                                 birthdays.Add((name, birthday));
-                                //yield return (name, birthday);
                             }
-
-                            //phoneContacts.Add(name);
                         }
                         catch (Exception ex)
                         {
-                            //something wrong with one contact, may be display name is completely empty, decide what to do
+                            Log.Error("Fehler bei der Ermittlung der Geburts´tage der Kontakte: " + ex.Message);
                         }
                     }
+
                     phones.Close(); 
                 }
             }

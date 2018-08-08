@@ -1,7 +1,7 @@
 ﻿using System;
 using System.IO;
 
-namespace BirthdayReminder
+namespace BirthdayReminder.Util
 {
     public static class Log
     {

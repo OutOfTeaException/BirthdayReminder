@@ -5,9 +5,10 @@ using System.Text;
 using System.Threading.Tasks;
 using Android.App;
 using Android.App.Job;
-using Android.Util;
+using BirthdayReminder.Services;
+using BirthdayReminder.Util;
 
-namespace BirthdayReminder
+namespace BirthdayReminder.Jobs
 {
     [Service(Name = "BirthdayReminder.BirthdayCheckJob", Permission = "android.permission.BIND_JOB_SERVICE")]
     public class BirthdayCheckJob : JobService

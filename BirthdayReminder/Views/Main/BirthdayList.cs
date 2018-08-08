@@ -1,9 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using BirthdayReminder.Model;
 
-
-namespace BirthdayReminder
+namespace BirthdayReminder.Views.Main
 {
     public class BirthdayList : List<BirthdayInfo>
     {
