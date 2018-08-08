@@ -61,7 +61,9 @@
     <Compile Include="BirthdayCheckJob.cs" />
     <Compile Include="BirthdayInfo.cs" />
     <Compile Include="BirthdayList.cs" />
+    <Compile Include="BirthdayListAdapter.cs" />
     <Compile Include="BirthdayService.cs" />
+    <Compile Include="BirthdayViewHolder.cs" />
     <Compile Include="Extensions\JobSchulderExtensions.cs" />
     <Compile Include="Log.cs" />
     <Compile Include="MainActivity.cs" />
@@ -106,7 +108,18 @@
     <AndroidResource Include="Resources\mipmap-xxxhdpi\ic_launcher_round.png" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Xamarin.Android.Support.Design" Version="25.4.0.2" />
+    <PackageReference Include="Xamarin.Android.Support.Design" Version="26.1.0.1" />
+    <PackageReference Include="Xamarin.Android.Support.v7.CardView">
+      <Version>26.1.0.1</Version>
+    </PackageReference>
+    <PackageReference Include="Xamarin.Android.Support.v7.RecyclerView">
+      <Version>26.1.0.1</Version>
+    </PackageReference>
+  </ItemGroup>
+  <ItemGroup>
+    <AndroidResource Include="Resources\layout\BirthdayCardView.axml">
+      <SubType>Designer</SubType>
+    </AndroidResource>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath)\Xamarin\Android\Xamarin.Android.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

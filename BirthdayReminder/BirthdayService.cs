@@ -13,15 +13,15 @@ namespace BirthdayReminder
         {
         }
 
-        public IList<(String name, DateTime birthday)> GetNextBirthdays(int daysInFuture)
+        public IList<BirthdayInfo> GetNextBirthdays(int daysInFuture)
         {
             var birthdays = GetBirthdaysFromContacts();
 
             var nextBirthdays = from b in birthdays.Distinct()
-                                 let bNow = new DateTime(DateTime.Today.Year, b.birthday.Month, b.birthday.Day)
-                                 where bNow >= DateTime.Today && bNow <= DateTime.Today.AddDays(daysInFuture)
-                                 orderby bNow
-                                 select b;
+                                let bNow = new DateTime(DateTime.Today.Year, b.birthday.Month, b.birthday.Day)
+                                where bNow >= DateTime.Today && bNow <= DateTime.Today.AddDays(daysInFuture)
+                                orderby bNow
+                                select new BirthdayInfo(b.name, b.birthday);
 
             return nextBirthdays.ToList();
         }

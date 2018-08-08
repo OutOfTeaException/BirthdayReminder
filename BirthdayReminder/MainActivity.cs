@@ -14,10 +14,11 @@ using Android.App.Job;
 using Android.Util;
 using Android.Widget;
 using System.IO;
+using Android.Support.V7.Widget;
 
 namespace BirthdayReminder
 {
-    [Activity(Label = "@string/app_name", Theme = "@style/AppTheme.NoActionBar", MainLauncher = true)]
+    [Activity(Label = "@string/app_name", Theme = "@style/AppTheme", MainLauncher = true)]
     public class MainActivity : AppCompatActivity, ActivityCompat.IOnRequestPermissionsResultCallback
     {
         private const int REQUEST_READ_CONTACTS = 42;
@@ -27,7 +28,12 @@ namespace BirthdayReminder
         private BirthdayService birthdayService;
         private View layout;
         private FloatingActionButton fab;
-        
+
+        RecyclerView mRecyclerView;
+        RecyclerView.LayoutManager mLayoutManager;
+        BirthdayListAdapter birthdayListAdapter;
+        private BirthdayList birthdayList = new BirthdayList();
+
         //TODO: Konfigurierbar machen
         private int daysInFuture = 30;
         private (int hour, int minute) checkTime = (13, 30);
@@ -54,16 +60,27 @@ namespace BirthdayReminder
             SetContentView(Resource.Layout.activity_main);
             layout = FindViewById(Resource.Id.main_layout);
 
-            Android.Support.V7.Widget.Toolbar toolbar = FindViewById<Android.Support.V7.Widget.Toolbar>(Resource.Id.toolbar);
-            SetSupportActionBar(toolbar);
+            //Android.Support.V7.Widget.Toolbar toolbar = FindViewById<Android.Support.V7.Widget.Toolbar>(Resource.Id.toolbar);
+            //SetSupportActionBar(toolbar);
 
             fab = FindViewById<FloatingActionButton>(Resource.Id.fab);
             fab.Click += FabOnClick;
 
+            mRecyclerView = FindViewById<RecyclerView>(Resource.Id.recyclerView);
+            mLayoutManager = new LinearLayoutManager(this);
+            mRecyclerView.SetLayoutManager(mLayoutManager);
+
+            var nextBirthdays = birthdayService.GetNextBirthdays(30);
+            birthdayList = new BirthdayList(nextBirthdays);
+
+            // Plug the adapter into the RecyclerView:
+            birthdayListAdapter = new BirthdayListAdapter(birthdayList);
+            mRecyclerView.SetAdapter(birthdayListAdapter);
+
             Log.Info("Anwendung gestartet.");
 
-            TextView textView = FindViewById<TextView>(Resource.Id.textbox);
-            textView.Text = File.ReadAllText(Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal), "log.txt"));
+            //TextView textView = FindViewById<TextView>(Resource.Id.textbox);
+            //textView.Text = File.ReadAllText(Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal), "log.txt"));
 
         }
 
@@ -104,8 +121,8 @@ namespace BirthdayReminder
             int id = item.ItemId;
             if (id == Resource.Id.action_settings)
             {
-                TextView textView = FindViewById<TextView>(Resource.Id.textbox);
-                textView.Text = File.ReadAllText(Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal), "log.txt"));
+                //TextView textView = FindViewById<TextView>(Resource.Id.textbox);
+                //textView.Text = File.ReadAllText(Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal), "log.txt"));
                 return true;
             }
 
@@ -123,14 +140,14 @@ namespace BirthdayReminder
             }
             else
             {
-                //CheckForNextBirthdays();
+                //DisplayNextBirthdays();
                 //int pendingJobCount = JobScheduler.AllPendingJobs.Count;
                 //if (pendingJobCount > 0)
                 //{
                 //    Snackbar.Make(view, "Job läuft bereits!", Snackbar.LengthShort).Show();
                 //    return;
                 //}
-                
+
                 int scheduleResult = ScheduleJob();
                 if (JobScheduler.ResultSuccess == scheduleResult)
                 {
@@ -154,7 +171,8 @@ namespace BirthdayReminder
 
             var jobInfo = this.CreateJobBuilderUsingJobId<BirthdayCheckJob>(1)
                                  .SetExtras(jobParameters)
-                                 .SetPeriodic(15 * 60 * 1000, 5 * 60 * 1000) // alle 15 min
+                                 //.SetPeriodic(15 * 60 * 1000, 5 * 60 * 1000) // alle 15 min
+                                 .SetPeriodic(1 * 60 * 60 * 1000, 5 * 60 * 1000) // jede Stunde
                                  .SetPersisted(true)
                                  .Build();
 
@@ -162,19 +180,10 @@ namespace BirthdayReminder
             return scheduleResult;
         }
 
-        private void CheckForNextBirthdays()
+        private void DisplayNextBirthdays()
         {
             var nextBirthdays = birthdayService.GetNextBirthdays(30);
-
-            StringBuilder message = new StringBuilder();
-
-            foreach (var birthday in nextBirthdays)
-            {
-                message.AppendLine($"{birthday.birthday.ToString("dd.MM.")} - {birthday.name}");
-            }
-
-            var notification = notificationHelper.GetNotification($"Bald haben {nextBirthdays.Count()} Leute Geburtstag", message.ToString());
-            notificationHelper.Notify(0, notification);
+            birthdayList = new BirthdayList(nextBirthdays);
         }
 
         private void RequestPermissions()

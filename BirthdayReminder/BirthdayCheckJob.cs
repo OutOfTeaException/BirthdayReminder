@@ -71,7 +71,7 @@ namespace BirthdayReminder
 
             foreach (var birthday in nextBirthdays)
             {
-                message.AppendLine($"{birthday.birthday.ToString("dd.MM.")} - {birthday.name}");
+                message.AppendLine($"{birthday.Birthday.ToString("dd.MM.")} - {birthday.Name}");
             }
 
             var notification = notificationHelper.GetNotification($"Bald haben {nextBirthdays.Count()} Leute Geburtstag", message.ToString());
