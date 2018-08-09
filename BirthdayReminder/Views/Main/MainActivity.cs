@@ -15,7 +15,6 @@ using BirthdayReminder.Jobs;
 using BirthdayReminder.Util;
 using BirthdayReminder.Model;
 using System.Collections.Generic;
-using System.IO;
 using Android.Content;
 using Android.Runtime;
 
@@ -28,7 +27,7 @@ namespace BirthdayReminder.Views.Main
         private const int ACTIVITY_SETTINGS = 1;
         public const string TAG = "BirthdayReminder";
 
-        private NotificationHelper notificationHelper;
+        private NotificationService notificationHelper;
         private BirthdayService birthdayService;
         private ConfigurationService configurationService;
         private View layout;
@@ -61,7 +60,7 @@ namespace BirthdayReminder.Views.Main
             base.OnCreate(savedInstanceState);
 
             // Services und Helper erstellen
-            notificationHelper = new NotificationHelper(this);
+            notificationHelper = new NotificationService(this);
             birthdayService = new BirthdayService(this);
             configurationService = new ConfigurationService();
 

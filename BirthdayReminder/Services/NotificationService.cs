@@ -3,36 +3,25 @@ using Android.App;
 using Android.Content;
 using Android.Graphics;
 
-namespace BirthdayReminder.Util
+namespace BirthdayReminder.Services
 {
-    public class NotificationHelper : ContextWrapper
+    public class NotificationService : ContextWrapper
     {
         public const string PRIMARY_CHANNEL = "default";
 
-        NotificationManager manager;
-        NotificationManager Manager
-        {
-            get
-            {
-                if (manager == null)
-                {
-                    manager = (NotificationManager)GetSystemService(NotificationService);
-                }
-                return manager;
-            }
-        }
-
-        //int SmallIcon => Android.Resource.Drawable.StatNotifyChat;
+        private NotificationManager manager;
+        
         int SmallIcon => Resource.Drawable.birthday;
 
-        public NotificationHelper(Context context) : base(context)
+        public NotificationService(Context context) : base(context)
         {
+            manager = (NotificationManager)GetSystemService(NotificationService);
             var channel = new NotificationChannel(PRIMARY_CHANNEL, PRIMARY_CHANNEL, NotificationImportance.Default);
             channel.LightColor = Color.Green;
             channel.EnableVibration(true);
             channel.LockscreenVisibility = NotificationVisibility.Private;
             
-            Manager.CreateNotificationChannel(channel);
+            manager.CreateNotificationChannel(channel);
         }
 
         public Notification.Builder GetNotification(String title, String body)
@@ -50,7 +39,7 @@ namespace BirthdayReminder.Util
 
         public void Notify(int id, Notification.Builder notification)
         {
-            Manager.Notify(id, notification.Build());
+            manager.Notify(id, notification.Build());
         }
     }
 }

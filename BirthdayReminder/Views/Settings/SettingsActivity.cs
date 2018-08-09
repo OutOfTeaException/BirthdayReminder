@@ -1,13 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-
 using Android.App;
 using Android.Content;
 using Android.OS;
-using Android.Runtime;
-using Android.Views;
 using Android.Widget;
 
 namespace BirthdayReminder.Views.Settings
@@ -57,7 +51,6 @@ namespace BirthdayReminder.Views.Settings
                    intent.PutExtra(PARAM_CHECK_TIME_HOUR, checkTime.hour);
                    intent.PutExtra(PARAM_CHECK_TIME_MINUTE, checkTime.minute);
                    SetResult(Result.Ok, intent);
-                   //Finish();
                }, checkTime);
 
             

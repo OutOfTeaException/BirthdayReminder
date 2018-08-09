@@ -1,7 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,7 +17,7 @@ namespace BirthdayReminder.Jobs
 
         private const string TAG = "BirthdayCheckJob";
         
-        private NotificationHelper notificationHelper;
+        private NotificationService notificationService;
         private BirthdayService birthdayService;
         private ConfigurationService ConfigurationService;
 
@@ -29,9 +26,9 @@ namespace BirthdayReminder.Jobs
         {
             Log.Info("Starte BirthdayCheck Job...");
 
-            if (notificationHelper == null)
+            if (notificationService == null)
             {
-                notificationHelper = new NotificationHelper(this);
+                notificationService = new NotificationService(this);
                 birthdayService = new BirthdayService(this);
                 ConfigurationService = new ConfigurationService();
             }
@@ -90,8 +87,8 @@ namespace BirthdayReminder.Jobs
                 message.AppendLine($"{date} - {birthday.Name}");
             }
 
-            var notification = notificationHelper.GetNotification($"Bald haben {nextBirthdays.Count()} Leute Geburtstag", message.ToString());
-            notificationHelper.Notify(0, notification);
+            var notification = notificationService.GetNotification($"Bald haben {nextBirthdays.Count()} Leute Geburtstag", message.ToString());
+            notificationService.Notify(0, notification);
         }
 
         public override bool OnStopJob(JobParameters jobParams)

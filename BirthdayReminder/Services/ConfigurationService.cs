@@ -1,16 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Linq;
-using System.Text;
-
-using Android.App;
-using Android.Content;
-using Android.OS;
-using Android.Runtime;
-using Android.Views;
-using Android.Widget;
 
 namespace BirthdayReminder.Services
 {
@@ -24,7 +14,7 @@ namespace BirthdayReminder.Services
 
         static ConfigurationService()
         {
-            string documentsPath = System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal);
+            string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
             Directory.CreateDirectory(documentsPath);
 
             lastCheckTimeFile = Path.Combine(documentsPath, FILE_LAST_CHECK_TIME);
