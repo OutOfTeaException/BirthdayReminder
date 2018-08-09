@@ -13,6 +13,8 @@ using Android.Support.V7.Widget;
 using BirthdayReminder.Services;
 using BirthdayReminder.Jobs;
 using BirthdayReminder.Util;
+using BirthdayReminder.Model;
+using System.Collections.Generic;
 
 namespace BirthdayReminder.Views.Main
 {
@@ -52,14 +54,14 @@ namespace BirthdayReminder.Views.Main
         protected override void OnCreate(Bundle savedInstanceState)
         {
             base.OnCreate(savedInstanceState);
+
+            // Services und Helper erstellen
             notificationHelper = new NotificationHelper(this);
             birthdayService = new BirthdayService(this);
 
+            // View gedöns
             SetContentView(Resource.Layout.activity_main);
             layout = FindViewById(Resource.Id.main_layout);
-
-            //Android.Support.V7.Widget.Toolbar toolbar = FindViewById<Android.Support.V7.Widget.Toolbar>(Resource.Id.toolbar);
-            //SetSupportActionBar(toolbar);
 
             fab = FindViewById<FloatingActionButton>(Resource.Id.fab);
             fab.Click += FabOnClick;
@@ -68,38 +70,44 @@ namespace BirthdayReminder.Views.Main
             mLayoutManager = new LinearLayoutManager(this);
             mRecyclerView.SetLayoutManager(mLayoutManager);
 
-            var nextBirthdays = birthdayService.GetNextBirthdays(30);
-            birthdayList = new BirthdayList(nextBirthdays);
 
-            // Plug the adapter into the RecyclerView:
+            // Nächste Geburtstage ermitteln und anzeigen
+            var nextBirthdays = GetNextBirthdays();
+            birthdayList = new BirthdayList(nextBirthdays);
             birthdayListAdapter = new BirthdayListAdapter(birthdayList);
             mRecyclerView.SetAdapter(birthdayListAdapter);
+
+
+            // Job starten
+            int scheduleResult = ScheduleJob();
+            if (scheduleResult  != JobScheduler.ResultSuccess)
+            {
+                Log.Error("Job konnte nicht aktiviert werden...");
+                Snackbar.Make(layout, "Job konnte nicht aktiviert werden... :(", Snackbar.LengthShort).Show();
+            }
 
             Log.Info("Anwendung gestartet.");
 
             //TextView textView = FindViewById<TextView>(Resource.Id.textbox);
             //textView.Text = File.ReadAllText(Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal), "log.txt"));
-
         }
 
         public override void OnRequestPermissionsResult(int requestCode, string[] permissions, Permission[] grantResults)
         {
             if (requestCode == REQUEST_READ_CONTACTS)
             {
-                 // Received permission result for camera permission.
-                //Log.Info(TAG, "Received response for Location permission request.");
-
                 // Check if the only required permission has been granted
                 if ((grantResults.Length == 1) && (grantResults[0] == Permission.Granted))
                 {
-                    // Location permission has been granted, okay to retrieve the location of the device.
-                    //Log.Info(TAG, "Location permission has now been granted.");
-                    Snackbar.Make(fab, "Cool", Snackbar.LengthShort).Show();
+                    // Berechtigung erteilt, nächste Geburtstage laden und anzeigen
+                    var nextBirthdays = GetNextBirthdays();
+                    birthdayList.Clear();
+                    birthdayList.AddRange(nextBirthdays);
+                    birthdayListAdapter.NotifyDataSetChanged();
                 }
                 else
                 {
-                    //Log.Info(TAG, "Location permission was NOT granted.");
-                    Snackbar.Make(fab, "Nicht cool", Snackbar.LengthShort).Show();
+                    Snackbar.Make(fab, "Ohne die Berechtigung können keine Geburtstage ermittelt werden.", Snackbar.LengthShort).Show();
                 }
             }
             else
@@ -129,34 +137,21 @@ namespace BirthdayReminder.Views.Main
 
         private void FabOnClick(object sender, EventArgs eventArgs)
         {
-            View view = (View)sender;
+           
+        }
 
-            // Check if the Camera permission is already available.
+        private IList<Birthday> GetNextBirthdays()
+        {
+            // Check if the ReadContacts permission is already available.
             if (ActivityCompat.CheckSelfPermission(this, Manifest.Permission.ReadContacts) != (int)Permission.Granted)
             {
-                RequestPermissions();
+                ActivityCompat.RequestPermissions(this, new String[] { Manifest.Permission.ReadContacts }, REQUEST_READ_CONTACTS);
+                return new List<Birthday>();
             }
             else
             {
-                //DisplayNextBirthdays();
-                //int pendingJobCount = JobScheduler.AllPendingJobs.Count;
-                //if (pendingJobCount > 0)
-                //{
-                //    Snackbar.Make(view, "Job läuft bereits!", Snackbar.LengthShort).Show();
-                //    return;
-                //}
-
-                int scheduleResult = ScheduleJob();
-                if (JobScheduler.ResultSuccess == scheduleResult)
-                {
-                    Log.Info("Job aktiviert.");
-                    Snackbar.Make(view, "Job aktiviert!", Snackbar.LengthShort).Show();
-                }
-                else
-                {
-                    Log.Error("Job konnte nicht aktiviert werden...");
-                    Snackbar.Make(view, "Job konnte nicht aktiviert werden... :(", Snackbar.LengthShort).Show();
-                }
+                //TODO: Konfigurierbar machen
+                return birthdayService.GetNextBirthdays(30);
             }
         }
 
@@ -176,35 +171,6 @@ namespace BirthdayReminder.Views.Main
 
             var scheduleResult = JobScheduler.Schedule(jobInfo);
             return scheduleResult;
-        }
-
-        private void DisplayNextBirthdays()
-        {
-            var nextBirthdays = birthdayService.GetNextBirthdays(30);
-            birthdayList = new BirthdayList(nextBirthdays);
-        }
-
-        private void RequestPermissions()
-        {
-            if (ActivityCompat.ShouldShowRequestPermissionRationale(this, Manifest.Permission.ReadContacts))
-            {
-                // Provide an additional rationale to the user if the permission was not granted
-                // and the user would benefit from additional context for the use of the permission.
-                // For example if the user has previously denied the permission.
-                //Log.Info(TAG, "Displaying camera permission rationale to provide additional context.");
-
-                var requiredPermissions = new String[] { Manifest.Permission.ReadContacts };
-                Snackbar.Make(layout, "BLABLABLA", Snackbar.LengthIndefinite)
-                        .SetAction("OK", new Action<View>(delegate (View obj)
-                        {
-                            ActivityCompat.RequestPermissions(this, requiredPermissions, REQUEST_READ_CONTACTS);
-                        }))
-                        .Show();
-            }
-            else
-            {
-                ActivityCompat.RequestPermissions(this, new String[] { Manifest.Permission.ReadContacts }, REQUEST_READ_CONTACTS);
-            }
         }
     }
  }
