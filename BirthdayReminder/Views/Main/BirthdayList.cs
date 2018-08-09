@@ -4,13 +4,13 @@ using BirthdayReminder.Model;
 
 namespace BirthdayReminder.Views.Main
 {
-    public class BirthdayList : List<BirthdayInfo>
+    public class BirthdayList : List<Birthday>
     {
         public BirthdayList()
         {
         }
 
-        public BirthdayList(IList<BirthdayInfo> birthdays) : base(birthdays)
+        public BirthdayList(IList<Birthday> birthdays) : base(birthdays)
         {
         }
     }

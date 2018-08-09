@@ -59,7 +59,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Jobs\BirthdayCheckJob.cs" />
-    <Compile Include="Model\BirthdayInfo.cs" />
+    <Compile Include="Model\Birthday.cs" />
     <Compile Include="Views\Main\BirthdayList.cs" />
     <Compile Include="Views\Main\BirthdayListAdapter.cs" />
     <Compile Include="Services\BirthdayService.cs" />

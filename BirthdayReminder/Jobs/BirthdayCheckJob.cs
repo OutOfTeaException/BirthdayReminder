@@ -54,6 +54,7 @@ namespace BirthdayReminder.Jobs
 
         private bool ShouldCheck(DateTime now, (int hour, int minute) checkTime)
         {
+            return true;
             // Wenn seit einer Stunde nicht mehr geprüft wurde, auf jeden Fall prüfen
             if (lastCheckTime.HasValue && now < lastCheckTime.Value.AddHours(1))
                 return true;
@@ -72,7 +73,17 @@ namespace BirthdayReminder.Jobs
 
             foreach (var birthday in nextBirthdays)
             {
-                message.AppendLine($"{birthday.Birthday.ToString("dd.MM.")} - {birthday.Name}");
+                string date = birthday.ToString();
+                if (birthday.IsToday())
+                {
+                    date = "Heute";
+                }
+                else if (birthday.IsTomorrow())
+                {
+                    date = "Morgen";
+                }
+
+                message.AppendLine($"{date} - {birthday.Name}");
             }
 
             var notification = notificationHelper.GetNotification($"Bald haben {nextBirthdays.Count()} Leute Geburtstag", message.ToString());

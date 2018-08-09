@@ -26,7 +26,18 @@ namespace BirthdayReminder.Views.Main
             BirthdayViewHolder viewHolder = holder as BirthdayViewHolder;
 
             viewHolder.Name.Text = birthdayList[position].Name;
-            viewHolder.Birthday.Text = birthdayList[position].Birthday.ToString("dd.MM.");
+
+            string date = birthdayList[position].ToString();
+            if (birthdayList[position].IsToday())
+            {
+                date = "Heute";
+            }
+            else if (birthdayList[position].IsTomorrow())
+            {
+                date = "Morgen";
+            }
+
+            viewHolder.Birthday.Text = date;
         }
 
         public override int ItemCount => birthdayList.Count;
