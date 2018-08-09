@@ -15,6 +15,7 @@ using BirthdayReminder.Jobs;
 using BirthdayReminder.Util;
 using BirthdayReminder.Model;
 using System.Collections.Generic;
+using System.IO;
 
 namespace BirthdayReminder.Views.Main
 {
@@ -36,7 +37,7 @@ namespace BirthdayReminder.Views.Main
 
         //TODO: Konfigurierbar machen
         private int daysInFuture = 30;
-        private (int hour, int minute) checkTime = (13, 30);
+        private (int hour, int minute) checkTime = (19, 00);
 
         JobScheduler jobScheduler;
         JobScheduler JobScheduler
@@ -137,7 +138,10 @@ namespace BirthdayReminder.Views.Main
 
         private void FabOnClick(object sender, EventArgs eventArgs)
         {
-           
+            string documentsPath = System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal);
+            string file = Path.Combine(documentsPath, "lastCheckTime");
+            File.Delete(file);
+
         }
 
         private IList<Birthday> GetNextBirthdays()
@@ -151,7 +155,7 @@ namespace BirthdayReminder.Views.Main
             else
             {
                 //TODO: Konfigurierbar machen
-                return birthdayService.GetNextBirthdays(30);
+                return birthdayService.GetNextBirthdays(daysInFuture);
             }
         }
 
@@ -164,8 +168,8 @@ namespace BirthdayReminder.Views.Main
 
             var jobInfo = this.CreateJobBuilderUsingJobId<BirthdayCheckJob>(1)
                                  .SetExtras(jobParameters)
-                                 //.SetPeriodic(15 * 60 * 1000, 5 * 60 * 1000) // alle 15 min
-                                 .SetPeriodic(1 * 60 * 60 * 1000, 5 * 60 * 1000) // jede Stunde
+                                 .SetPeriodic(15 * 60 * 1000, 5 * 60 * 1000) // alle 15 min, 5 min Flex
+                                 //.SetPeriodic(1 * 60 * 60 * 1000, 5 * 60 * 1000) // jede Stunde, 5 min Flex
                                  .SetPersisted(true)
                                  .Build();
 

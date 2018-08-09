@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -16,10 +18,21 @@ namespace BirthdayReminder.Jobs
         public const string JOBPARAM_DAYS_IN_FUTURE = "daysInFuture";
         public const string JOBPARAM_CHECKTIME = "checkTime";
 
+        private const string FILE_LAST_CHECK_TIME = "lastCheckTime";
         private const string TAG = "BirthdayCheckJob";
+        private static readonly string lastCheckTimeFile;
+
         private NotificationHelper notificationHelper;
         private BirthdayService birthdayService;
-        private DateTime? lastCheckTime;
+        
+
+        static BirthdayCheckJob()
+        {
+            string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
+            Directory.CreateDirectory(documentsPath);
+
+            lastCheckTimeFile = Path.Combine(documentsPath, FILE_LAST_CHECK_TIME);
+        }
 
         public override bool OnStartJob(JobParameters jobParams)
         {
@@ -35,13 +48,13 @@ namespace BirthdayReminder.Jobs
             int[] checkTimeArray = jobParams.Extras.GetIntArray(JOBPARAM_CHECKTIME);
             (int hour, int minute) checkTime = (checkTimeArray[0], checkTimeArray[1]);
 
-            if (ShouldCheck(DateTime.Now, checkTime))
+            if (ShouldCheck(DateTime.Now, checkTime, GetLastCheckTime()))
             {
                 Task.Run(() =>
                 {
                     Log.Debug($"Job wird ausgeführt (CheckTime: {checkTime.hour:00}:{checkTime.minute:00})...");
                     CheckForNextBirthdays(checkDaysInFuture);
-                    lastCheckTime = DateTime.Now;
+                    SaveLastCheckTime(DateTime.Now);
 
                     Log.Debug("Job erfolgreich ausgeführt.");
                     JobFinished(jobParams, false);
@@ -52,17 +65,16 @@ namespace BirthdayReminder.Jobs
             return true;
         }
 
-        private bool ShouldCheck(DateTime now, (int hour, int minute) checkTime)
+        private bool ShouldCheck(DateTime now, (int hour, int minute) checkTime, DateTime? lastCheckTime)
         {
-            return true;
-            // Wenn seit einer Stunde nicht mehr geprüft wurde, auf jeden Fall prüfen
-            if (lastCheckTime.HasValue && now < lastCheckTime.Value.AddHours(1))
-                return true;
-            
-            // Prüfen, on die Prüfzeit erreicht ist
             var checkDateTime = new DateTime(now.Year, now.Month, now.Day, checkTime.hour, checkTime.minute, 0);
 
-            return checkDateTime <= now && checkDateTime >= now.AddMinutes(-10);
+            if (now >= checkDateTime && (lastCheckTime == null || lastCheckTime.Value.Day != now.Day))
+            {
+                return true;
+            }
+
+            return false;
         }
 
         private void CheckForNextBirthdays(int daysInFuture)
@@ -94,6 +106,24 @@ namespace BirthdayReminder.Jobs
         {
             Log.Debug("Job wurde gestoppt.");
             return true; // Reschedule
+        }
+
+        private void SaveLastCheckTime(DateTime lastCheckTime)
+        {
+            string timestamp = lastCheckTime.ToString("u");
+            File.WriteAllText(lastCheckTimeFile, timestamp);
+        }
+
+        private DateTime? GetLastCheckTime()
+        {
+            if (!File.Exists(lastCheckTimeFile))
+            {
+                return null;
+            }
+
+            string timeStamp = File.ReadAllText(lastCheckTimeFile);
+
+            return DateTime.ParseExact(timeStamp, "u", CultureInfo.InvariantCulture);
         }
     }
 }
