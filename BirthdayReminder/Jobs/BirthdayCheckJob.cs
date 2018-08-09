@@ -18,21 +18,12 @@ namespace BirthdayReminder.Jobs
         public const string JOBPARAM_DAYS_IN_FUTURE = "daysInFuture";
         public const string JOBPARAM_CHECKTIME = "checkTime";
 
-        private const string FILE_LAST_CHECK_TIME = "lastCheckTime";
         private const string TAG = "BirthdayCheckJob";
-        private static readonly string lastCheckTimeFile;
-
+        
         private NotificationHelper notificationHelper;
         private BirthdayService birthdayService;
-        
+        private ConfigurationService ConfigurationService;
 
-        static BirthdayCheckJob()
-        {
-            string documentsPath = Environment.GetFolderPath(Environment.SpecialFolder.Personal);
-            Directory.CreateDirectory(documentsPath);
-
-            lastCheckTimeFile = Path.Combine(documentsPath, FILE_LAST_CHECK_TIME);
-        }
 
         public override bool OnStartJob(JobParameters jobParams)
         {
@@ -42,19 +33,20 @@ namespace BirthdayReminder.Jobs
             {
                 notificationHelper = new NotificationHelper(this);
                 birthdayService = new BirthdayService(this);
+                ConfigurationService = new ConfigurationService();
             }
 
             int checkDaysInFuture = jobParams.Extras.GetInt(JOBPARAM_DAYS_IN_FUTURE, 30);
             int[] checkTimeArray = jobParams.Extras.GetIntArray(JOBPARAM_CHECKTIME);
             (int hour, int minute) checkTime = (checkTimeArray[0], checkTimeArray[1]);
 
-            if (ShouldCheck(DateTime.Now, checkTime, GetLastCheckTime()))
+            if (ShouldCheck(DateTime.Now, checkTime, ConfigurationService.GetLastCheckTime()))
             {
                 Task.Run(() =>
                 {
                     Log.Debug($"Job wird ausgeführt (CheckTime: {checkTime.hour:00}:{checkTime.minute:00})...");
                     CheckForNextBirthdays(checkDaysInFuture);
-                    SaveLastCheckTime(DateTime.Now);
+                    ConfigurationService.SaveLastCheckTime(DateTime.Now);
 
                     Log.Debug("Job erfolgreich ausgeführt.");
                     JobFinished(jobParams, false);
@@ -106,24 +98,6 @@ namespace BirthdayReminder.Jobs
         {
             Log.Debug("Job wurde gestoppt.");
             return true; // Reschedule
-        }
-
-        private void SaveLastCheckTime(DateTime lastCheckTime)
-        {
-            string timestamp = lastCheckTime.ToString("u");
-            File.WriteAllText(lastCheckTimeFile, timestamp);
-        }
-
-        private DateTime? GetLastCheckTime()
-        {
-            if (!File.Exists(lastCheckTimeFile))
-            {
-                return null;
-            }
-
-            string timeStamp = File.ReadAllText(lastCheckTimeFile);
-
-            return DateTime.ParseExact(timeStamp, "u", CultureInfo.InvariantCulture);
         }
     }
 }

@@ -22,7 +22,8 @@ namespace BirthdayReminder.Util
             }
         }
 
-        int SmallIcon => Android.Resource.Drawable.StatNotifyChat;
+        //int SmallIcon => Android.Resource.Drawable.StatNotifyChat;
+        int SmallIcon => Resource.Drawable.birthday;
 
         public NotificationHelper(Context context) : base(context)
         {

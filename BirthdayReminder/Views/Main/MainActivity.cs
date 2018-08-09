@@ -16,6 +16,8 @@ using BirthdayReminder.Util;
 using BirthdayReminder.Model;
 using System.Collections.Generic;
 using System.IO;
+using Android.Content;
+using Android.Runtime;
 
 namespace BirthdayReminder.Views.Main
 {
@@ -23,10 +25,12 @@ namespace BirthdayReminder.Views.Main
     public class MainActivity : AppCompatActivity, ActivityCompat.IOnRequestPermissionsResultCallback
     {
         private const int REQUEST_READ_CONTACTS = 42;
+        private const int ACTIVITY_SETTINGS = 1;
         public const string TAG = "BirthdayReminder";
 
         private NotificationHelper notificationHelper;
         private BirthdayService birthdayService;
+        private ConfigurationService configurationService;
         private View layout;
         private FloatingActionButton fab;
 
@@ -59,6 +63,7 @@ namespace BirthdayReminder.Views.Main
             // Services und Helper erstellen
             notificationHelper = new NotificationHelper(this);
             birthdayService = new BirthdayService(this);
+            configurationService = new ConfigurationService();
 
             // View gedöns
             SetContentView(Resource.Layout.activity_main);
@@ -78,6 +83,15 @@ namespace BirthdayReminder.Views.Main
             birthdayListAdapter = new BirthdayListAdapter(birthdayList);
             mRecyclerView.SetAdapter(birthdayListAdapter);
 
+            var checkTimeFromConfig = configurationService.GetCheckTime();
+            if (checkTimeFromConfig == null)
+            {
+                checkTime = (07, 00);
+            }
+            else
+            {
+                checkTime = checkTimeFromConfig.Value;
+            }
 
             // Job starten
             int scheduleResult = ScheduleJob();
@@ -130,18 +144,38 @@ namespace BirthdayReminder.Views.Main
             {
                 //TextView textView = FindViewById<TextView>(Resource.Id.textbox);
                 //textView.Text = File.ReadAllText(Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal), "log.txt"));
+                var intent = new Intent(this, typeof(Settings.SettingsActivity));
+                intent.PutExtra(Settings.SettingsActivity.PARAM_CHECK_TIME_HOUR, checkTime.hour);
+                intent.PutExtra(Settings.SettingsActivity.PARAM_CHECK_TIME_MINUTE, checkTime.minute);
+                StartActivityForResult(intent, ACTIVITY_SETTINGS);
+
                 return true;
             }
 
             return base.OnOptionsItemSelected(item);
         }
 
+        protected override void OnActivityResult(int requestCode, [GeneratedEnum] Result resultCode, Intent data)
+        {
+            base.OnActivityResult(requestCode, resultCode, data);
+
+            if (requestCode == ACTIVITY_SETTINGS && resultCode == Result.Ok)
+            {
+                checkTime = (
+                    data.Extras.GetInt(Settings.SettingsActivity.PARAM_CHECK_TIME_HOUR),
+                    data.Extras.GetInt(Settings.SettingsActivity.PARAM_CHECK_TIME_MINUTE)
+                    );
+
+                configurationService.SaveCheckTime(checkTime);
+                configurationService.RemoveLastCheckTime();
+                ScheduleJob();
+            }
+        }
+
         private void FabOnClick(object sender, EventArgs eventArgs)
         {
-            string documentsPath = System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal);
-            string file = Path.Combine(documentsPath, "lastCheckTime");
-            File.Delete(file);
-
+            //var notification = notificationHelper.GetNotification($"Test 123", "Hallo Welt. :)");
+            //notificationHelper.Notify(0, notification);
         }
 
         private IList<Birthday> GetNextBirthdays()
