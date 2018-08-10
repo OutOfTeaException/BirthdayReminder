@@ -17,6 +17,8 @@ using BirthdayReminder.Model;
 using System.Collections.Generic;
 using Android.Content;
 using Android.Runtime;
+using System.Threading;
+using System.Linq;
 
 namespace BirthdayReminder.Views.Main
 {
@@ -42,18 +44,7 @@ namespace BirthdayReminder.Views.Main
         private int daysInFuture = 30;
         private (int hour, int minute) checkTime = (19, 00);
 
-        JobScheduler jobScheduler;
-        JobScheduler JobScheduler
-        {
-            get
-            {
-                if (jobScheduler == null)
-                {
-                    jobScheduler = (JobScheduler)GetSystemService(JobSchedulerService);
-                }
-                return jobScheduler;
-            }
-        }
+        private JobScheduler JobScheduler => (JobScheduler)GetSystemService(JobSchedulerService);
 
         protected override void OnCreate(Bundle savedInstanceState)
         {
@@ -77,8 +68,7 @@ namespace BirthdayReminder.Views.Main
 
 
             // Nächste Geburtstage ermitteln und anzeigen
-            var nextBirthdays = GetNextBirthdays();
-            birthdayList = new BirthdayList(nextBirthdays);
+            birthdayList = new BirthdayList(new List<Birthday>());
             birthdayListAdapter = new BirthdayListAdapter(birthdayList);
             mRecyclerView.SetAdapter(birthdayListAdapter);
 
@@ -92,18 +82,12 @@ namespace BirthdayReminder.Views.Main
                 checkTime = checkTimeFromConfig.Value;
             }
 
-            // Job starten
-            int scheduleResult = ScheduleJob();
-            if (scheduleResult  != JobScheduler.ResultSuccess)
-            {
-                Log.Error("Job konnte nicht aktiviert werden...");
-                Snackbar.Make(layout, "Job konnte nicht aktiviert werden... :(", Snackbar.LengthShort).Show();
-            }
+            // In Background
+            InitApp();
+
+            
 
             Log.Info("Anwendung gestartet.");
-
-            //TextView textView = FindViewById<TextView>(Resource.Id.textbox);
-            //textView.Text = File.ReadAllText(Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal), "log.txt"));
         }
 
         public override void OnRequestPermissionsResult(int requestCode, string[] permissions, Permission[] grantResults)
@@ -114,10 +98,7 @@ namespace BirthdayReminder.Views.Main
                 if ((grantResults.Length == 1) && (grantResults[0] == Permission.Granted))
                 {
                     // Berechtigung erteilt, nächste Geburtstage laden und anzeigen
-                    var nextBirthdays = GetNextBirthdays();
-                    birthdayList.Clear();
-                    birthdayList.AddRange(nextBirthdays);
-                    birthdayListAdapter.NotifyDataSetChanged();
+                    InitApp();
                 }
                 else
                 {
@@ -141,8 +122,6 @@ namespace BirthdayReminder.Views.Main
             int id = item.ItemId;
             if (id == Resource.Id.action_settings)
             {
-                //TextView textView = FindViewById<TextView>(Resource.Id.textbox);
-                //textView.Text = File.ReadAllText(Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal), "log.txt"));
                 var intent = new Intent(this, typeof(Settings.SettingsActivity));
                 intent.PutExtra(Settings.SettingsActivity.PARAM_CHECK_TIME_HOUR, checkTime.hour);
                 intent.PutExtra(Settings.SettingsActivity.PARAM_CHECK_TIME_MINUTE, checkTime.minute);
@@ -167,7 +146,7 @@ namespace BirthdayReminder.Views.Main
 
                 configurationService.SaveCheckTime(checkTime);
                 configurationService.RemoveLastCheckTime();
-                ScheduleJob();
+                ScheduleJob(true);
             }
         }
 
@@ -175,26 +154,61 @@ namespace BirthdayReminder.Views.Main
         {
             //var notification = notificationHelper.GetNotification($"Test 123", "Hallo Welt. :)");
             //notificationHelper.Notify(0, notification);
+
+            //TextView textView = FindViewById<TextView>(Resource.Id.textbox);
+            //textView.Text = File.ReadAllText(Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Personal), "log.txt"));
         }
 
-        private IList<Birthday> GetNextBirthdays()
+        private void InitApp()
         {
             // Check if the ReadContacts permission is already available.
             if (ActivityCompat.CheckSelfPermission(this, Manifest.Permission.ReadContacts) != (int)Permission.Granted)
             {
                 ActivityCompat.RequestPermissions(this, new String[] { Manifest.Permission.ReadContacts }, REQUEST_READ_CONTACTS);
-                return new List<Birthday>();
             }
             else
             {
-                //TODO: Konfigurierbar machen
-                return birthdayService.GetNextBirthdays(daysInFuture);
+                ThreadPool.QueueUserWorkItem(o => InitAppAsync());
             }
         }
 
-        private int ScheduleJob()
+        private void InitAppAsync()
         {
-            JobScheduler.CancelAll();
+            var nextBirthdays = birthdayService.GetNextBirthdays(daysInFuture);
+
+            RunOnUiThread(() =>
+            {
+                birthdayList.Clear();
+                birthdayList.AddRange(nextBirthdays);
+                birthdayListAdapter.NotifyDataSetChanged();
+            });
+
+            // Job starten
+            int scheduleResult = ScheduleJob(false);
+            if (scheduleResult != JobScheduler.ResultSuccess)
+            {
+                Log.Error("Job konnte nicht aktiviert werden...");
+                RunOnUiThread(() =>
+                { 
+                    Snackbar.Make(layout, "Job konnte nicht aktiviert werden... :(", Snackbar.LengthShort).Show();
+                });
+            }
+        }
+
+        private int ScheduleJob(bool restartJob)
+        {
+            if (restartJob)
+            {
+                JobScheduler.CancelAll();
+            }
+            else
+            {
+                if (JobScheduler.AllPendingJobs.Any())
+                {
+                    return JobScheduler.ResultSuccess;
+                }
+            }
+
             var jobParameters = new PersistableBundle();
             jobParameters.PutInt(BirthdayCheckJob.JOBPARAM_DAYS_IN_FUTURE, daysInFuture);
             jobParameters.PutIntArray(BirthdayCheckJob.JOBPARAM_CHECKTIME, new[] { checkTime.hour, checkTime.minute });
