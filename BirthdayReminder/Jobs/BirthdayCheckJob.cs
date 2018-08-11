@@ -70,6 +70,11 @@ namespace BirthdayReminder.Jobs
         {
             var nextBirthdays = birthdayService.GetNextBirthdays(daysInFuture);
 
+            if (!nextBirthdays.Any())
+            {
+                return;
+            }
+
             StringBuilder message = new StringBuilder();
 
             foreach (var birthday in nextBirthdays)
