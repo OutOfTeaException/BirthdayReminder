@@ -10,7 +10,7 @@ namespace BirthdayReminder.Services
         public const string PRIMARY_CHANNEL = "default";
 
         private NotificationManager manager;
-        
+
         int SmallIcon => Resource.Drawable.birthday;
 
         public NotificationService(Context context) : base(context)

@@ -58,8 +58,9 @@
     <Reference Include="Mono.Android" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Jobs\BirthdayCheckJob.cs" />
     <Compile Include="Model\Birthday.cs" />
+    <Compile Include="Services\AlarmReceiver.cs" />
+    <Compile Include="Services\BirthdayCheckService.cs" />
     <Compile Include="Services\ConfigurationService.cs" />
     <Compile Include="Views\Main\BirthdayList.cs" />
     <Compile Include="Views\Main\BirthdayListAdapter.cs" />
@@ -111,6 +112,9 @@
     <AndroidResource Include="Resources\mipmap-xxxhdpi\ic_launcher_round.png" />
   </ItemGroup>
   <ItemGroup>
+    <PackageReference Include="NodaTime">
+      <Version>2.4.7</Version>
+    </PackageReference>
     <PackageReference Include="Xamarin.Android.Support.Design" Version="26.1.0.1" />
     <PackageReference Include="Xamarin.Android.Support.v7.CardView">
       <Version>26.1.0.1</Version>

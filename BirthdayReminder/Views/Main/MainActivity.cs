@@ -11,7 +11,6 @@ using BirthdayReminder.Extensions;
 using Android.App.Job;
 using Android.Support.V7.Widget;
 using BirthdayReminder.Services;
-using BirthdayReminder.Jobs;
 using BirthdayReminder.Util;
 using BirthdayReminder.Model;
 using System.Collections.Generic;
@@ -43,8 +42,6 @@ namespace BirthdayReminder.Views.Main
         //TODO: Konfigurierbar machen
         private int daysInFuture = 30;
         private (int hour, int minute) checkTime = (19, 00);
-
-        private JobScheduler JobScheduler => (JobScheduler)GetSystemService(JobSchedulerService);
 
         protected override void OnCreate(Bundle savedInstanceState)
         {
@@ -146,7 +143,7 @@ namespace BirthdayReminder.Views.Main
 
                 configurationService.SaveCheckTime(checkTime);
                 configurationService.RemoveLastCheckTime();
-                ScheduleJob(true);
+                ScheduleCheck();
             }
         }
 
@@ -184,44 +181,24 @@ namespace BirthdayReminder.Views.Main
             });
 
             // Job starten
-            int scheduleResult = ScheduleJob(false);
-            if (scheduleResult != JobScheduler.ResultSuccess)
+            try
             {
-                Log.Error("Job konnte nicht aktiviert werden...");
+                ScheduleCheck();
+            }
+            catch (Exception ex)
+            {
+                Log.Error("Job konnte nicht aktiviert werden..." + ex.Message);
                 RunOnUiThread(() =>
-                { 
+                {
                     Snackbar.Make(layout, "Job konnte nicht aktiviert werden... :(", Snackbar.LengthShort).Show();
                 });
             }
         }
 
-        private int ScheduleJob(bool restartJob)
+        private void ScheduleCheck()
         {
-            if (restartJob)
-            {
-                JobScheduler.CancelAll();
-            }
-            else
-            {
-                if (JobScheduler.AllPendingJobs.Any())
-                {
-                    return JobScheduler.ResultSuccess;
-                }
-            }
-
-            var jobParameters = new PersistableBundle();
-            jobParameters.PutInt(BirthdayCheckJob.JOBPARAM_DAYS_IN_FUTURE, daysInFuture);
-            jobParameters.PutIntArray(BirthdayCheckJob.JOBPARAM_CHECKTIME, new[] { checkTime.hour, checkTime.minute });
-
-            var jobInfo = this.CreateJobBuilderUsingJobId<BirthdayCheckJob>(1)
-                                 .SetExtras(jobParameters)
-                                 .SetPeriodic(15 * 60 * 1000, 5 * 60 * 1000) // alle 15 min, 5 min Flex
-                                 //.SetPeriodic(1 * 60 * 60 * 1000, 5 * 60 * 1000) // jede Stunde, 5 min Flex
-                                 .SetPersisted(true)
-                                 .Build();
-
-            var scheduleResult = JobScheduler.Schedule(jobInfo);
-            return scheduleResult;
+            var b = new BirthdayCheckService(this);
+            b.Schedule();
         }
     }
  }

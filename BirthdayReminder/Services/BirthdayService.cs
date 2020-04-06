@@ -59,7 +59,7 @@ namespace BirthdayReminder.Services
                         }
                         catch (Exception ex)
                         {
-                            Log.Error("Fehler bei der Ermittlung der Geburts´tage der Kontakte: " + ex.Message);
+                            Log.Error("Fehler bei der Ermittlung der Geburtstage der Kontakte: " + ex.Message);
                         }
                     }
 
